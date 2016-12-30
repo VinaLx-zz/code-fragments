@@ -23,15 +23,15 @@ class Scanner {
 
   private:
     enum State {
-        START,          // start state
-        LOW_OPERATOR,   // '+', '-'
-        HIGH_OPERATOR,  // '*', '/'
-        LEFT_PARENTH,   // '('
-        RIGHT_PARENTH,  // ')'
-        INTEGER_ACC,    // accept state for integer
-        FLOAT_DOT,      // a middle state to the FLOAT_ACC
-        FLOAT_ACC,      // accept state for floating point
-        END,  // end state, collect previous accept token or report error
+        START = 0,          // start state
+        LOW_OPERATOR = 1,   // '+', '-'
+        HIGH_OPERATOR = 2,  // '*', '/'
+        LEFT_PARENTH = 3,   // '('
+        RIGHT_PARENTH = 4,  // ')'
+        INTEGER_ACC = 5,    // accept state for integer
+        FLOAT_DOT = 6,      // a middle state to the FLOAT_ACC
+        FLOAT_ACC = 7,      // accept state for floating point
+        END = 8,  // end state, collect previous accept token or report error
     };
 
     class Recorder {
@@ -94,8 +94,8 @@ class Scanner {
 
     static constexpr StateHandler state_handler_[] = {
         &StartHandler,      &SingleCharHandler, &SingleCharHandler,
-        &SingleCharHandler, &SingleCharHandler, &SingleCharHandler,
-        &IntAccHandler,     &FloatAccHandler,   &FloatDotHandler,
+        &SingleCharHandler, &SingleCharHandler, &IntAccHandler,
+        &FloatAccHandler,   &FloatDotHandler,
     };
 
     /**
@@ -119,7 +119,7 @@ class Scanner {
     int64_t position_;
 };
 
-class InvalidChar : std::logic_error {
+class InvalidChar : public std::logic_error {
   public:
     InvalidChar(char c, size_t index) : logic_error(MakeMessage(c, index)) {}
 
@@ -130,7 +130,7 @@ class InvalidChar : std::logic_error {
     }
 };
 
-class InvalidToken : std::logic_error {
+class InvalidToken : public std::logic_error {
   public:
     InvalidToken(const std::string& token, size_t index)
         : logic_error(MakeMessage(token, index)) {}

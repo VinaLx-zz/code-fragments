@@ -1,5 +1,6 @@
 #include "Scanner.h"
 #include <cctype>
+#include <iostream>
 #include "Token.h"
 
 using vinalx::calc::Scanner;
@@ -7,14 +8,21 @@ using vinalx::calc::Token;
 
 Scanner::Scanner(const std::string& text) : text_(text), position_(0) {}
 
+constexpr Scanner::StateHandler Scanner::state_handler_[];
+
 Scanner::Recorder::Recorder(int64_t start)
     : start_(start), latest_acc_(start), token_type_(Token::Type::ERROR) {}
 
 void Scanner::Recorder::UpdateRecord(State state, int64_t position) {
-    token_type_ = StateToToken(state);
-    if (token_type_ != Token::ERROR) {
-        latest_acc_ = position;
+    if (state == State::START) {
+        start_ = position;
     }
+    Token::Type token_type = StateToToken(state);
+    if (token_type == Token::ERROR) {
+        return;
+    }
+    token_type_ = token_type;
+    latest_acc_ = position;
 }
 
 Token Scanner::Recorder::CollectResult(
@@ -23,7 +31,15 @@ Token Scanner::Recorder::CollectResult(
         throw InvalidToken(text.substr(start_, *new_position - start_), start_);
     }
     *new_position = latest_acc_;
-    return Token(token_type_, text.substr(latest_acc_ - start_));
+    return Token(token_type_, text.substr(start_, latest_acc_ - start_));
+}
+
+std::vector<Token> Scanner::Scan() {
+    std::vector<Token> tokens;
+    for (; position_ < text_.size();) {
+        tokens.push_back(GetToken());
+    }
+    return tokens;
 }
 
 Token::Type Scanner::StateToToken(State state) {
@@ -50,15 +66,7 @@ Token::Type Scanner::StateToToken(State state) {
 
 bool Scanner::IsValidChar(char c) {
     return std::isdigit(c) or std::isspace(c) or c == '+' or c == '-' or
-           c == '*' or c == '/' or c == '(' or c == ')' or c == '.';
-}
-
-std::vector<Token> Scanner::Scan() {
-    std::vector<Token> tokens;
-    for (; position_ < text_.size();) {
-        tokens.push_back(GetToken());
-    }
-    return tokens;
+           c == '*' or c == '/' or c == '(' or c == ')' or c == '.' or not c;
 }
 
 Token Scanner::GetToken() {
@@ -66,6 +74,9 @@ Token Scanner::GetToken() {
     Recorder recorder(position_);
     for (; state != State::END;) {
         char next_char = NextChar();
+        if (not next_char) {
+            break;
+        }
         state = StateDispatch(state, next_char);
         recorder.UpdateRecord(state, position_);
     }
@@ -103,6 +114,9 @@ Scanner::State Scanner::StartHandler(char next_char) {
     }
     if (isdigit(next_char)) {
         return INTEGER_ACC;
+    }
+    if (isspace(next_char)) {
+        return START;
     }
     return END;
 }
