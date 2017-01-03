@@ -60,6 +60,7 @@ class CenteredShapes extends JComponent {
 
     private JFrame frame_;
 
+
     public CenteredShapes(JFrame frame, int width, int height) {
         size_ = new Dimension(width, height);
         frame_ = frame;
@@ -67,13 +68,18 @@ class CenteredShapes extends JComponent {
 
     @Override
     public Dimension getPreferredSize() {
-        return size_;
+        Dimension prefer = new Dimension(size_);
+        // prefer.width += 100;
+        // prefer.height += 100;
+        return prefer;
     }
 
     @Override
     public void paintComponent(Graphics graphics) {
         Graphics2D graphics_2d = (Graphics2D) graphics;
         calculatePosition();
+        graphics_2d.setBackground(Color.PINK);
+        graphics_2d.setPaint(Color.BLUE);
 
         Rectangle2D rectangle = new Rectangle2D.Float();
         Ellipse2D ellipse = new Ellipse2D.Float();
@@ -81,7 +87,8 @@ class CenteredShapes extends JComponent {
         ellipse.setFrameFromDiagonal(top_left_corner_, bottom_right_corner_);
 
         graphics_2d.draw(rectangle);
-        graphics_2d.draw(ellipse);
+        graphics_2d.setPaint(Color.GREEN);
+        graphics_2d.fill(ellipse);
     }
 
     private void calculatePosition() {

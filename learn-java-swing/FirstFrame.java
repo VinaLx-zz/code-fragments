@@ -21,7 +21,7 @@ public class FirstFrame extends JFrame {
     }
 
     private void addComponents() {
-        getContentPane().add(new FirstComponent(WIDTH / 3, HEIGHT / 3));
+        getContentPane().add(new FirstComponent(50, 50));
         pack();
     }
 }
