@@ -3,6 +3,15 @@ import javax.swing.*;
 
 public class Main {
     public static void main(String[] argv) {
+        String[] available_fonts = GraphicsEnvironment
+            .getLocalGraphicsEnvironment()
+            .getAvailableFontFamilyNames();
+
+        // System.out.println("Current Available Fonts: ");
+        // for (String font : available_fonts) {
+            // System.out.println(font);
+        // }
+
         EventQueue.invokeLater(() -> {
             FirstFrame frame = new FirstFrame();
             initFrameSize(frame);
