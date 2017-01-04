@@ -27,6 +27,7 @@ public class CenteredText extends JPanel {
 
     @Override
     public void paintComponent(Graphics graphic) {
+        super.paintComponent(graphic);
         this.graphic = (Graphics2D) graphic;
         Font font = createFont(Font.PLAIN, 50);
         drawCenteredString(DEFAULT_TEXT, font);
@@ -66,7 +67,7 @@ public class CenteredText extends JPanel {
 
     private void initAction() {
         Action change_pos = new ChangePosition();
-        getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("l"), "goleft");
+        getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("L"), "goleft");
         getActionMap().put("goleft", change_pos);
     }
 
@@ -78,7 +79,8 @@ public class CenteredText extends JPanel {
 
     class ChangePosition extends AbstractAction {
         public void actionPerformed(ActionEvent event) {
-            Point2D new_pos = new Point2D.Double(current_pos_.getX() + 10, current_pos_.getY());
+            Point2D new_pos = new Point2D.Double(
+                    current_pos_.getX() + 10, current_pos_.getY());
             current_pos_ = new_pos;
             center_enabled = false;
             repaint();
