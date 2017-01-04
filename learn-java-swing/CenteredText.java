@@ -3,7 +3,7 @@ import java.awt.font.*;
 import javax.swing.*;
 import java.awt.*;
 
-public class CenteredText extends JComponent {
+public class CenteredText extends JPanel {
     public static final String DEFAULT_TEXT = "Hello Swing";
     public static final Dimension DEFAULT_SIZE = new Dimension(300, 200);
 
