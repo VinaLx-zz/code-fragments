@@ -14,10 +14,7 @@ public class FirstFrame extends JFrame {
 
     private void initFrame() {
         setMinimumSize(new Dimension(300, 200));
-        // setResizable(false);
-        // setLocation(0, 0);
         setTitle("FIRST FRAME");
-        // setIconImage(new ImageIcon(ICON_URL).getImage());
     }
 
     private void addComponents() {
@@ -35,11 +32,17 @@ public class FirstFrame extends JFrame {
     private JButton createColorSwitchButton() {
         JButton color_button = new JButton("switch");
         color_button.setSize(100, 50);
-        color_button.addActionListener(new ColorSwitch());
+        Action color_switch = new ColorSwitch();
+        color_button.addActionListener(color_switch);
+
+        color_button.getInputMap().put(
+                KeyStroke.getKeyStroke("N"), "switch color");
+        color_button.getActionMap().put("switch color", color_switch);
+
         return color_button;
     }
 
-    private class ColorSwitch implements ActionListener {
+    private class ColorSwitch extends AbstractAction {
         public void actionPerformed(ActionEvent event) {
             color_index = (1 + color_index) % colors.length;
             FirstFrame.this.setBackground(colors[color_index]);
