@@ -10,11 +10,48 @@ public class CenteredText extends JPanel {
 
     private Graphics2D graphic;
     private String text_;
+
     private Point2D current_pos_;
     private boolean center_enabled = true;
 
+    private static final Dimension LEFT, RIGHT, UP, DOWN;
+
+    static {
+        LEFT = new Dimension(-10, 0);
+        RIGHT = new Dimension(10, 0);
+        UP = new Dimension(0, -10);
+        DOWN = new Dimension(0, 10);
+    }
+
+    class ChangePosition extends AbstractAction {
+
+        private Dimension direction_;
+
+        public ChangePosition(Dimension direction) {
+            direction_ = direction;
+        }
+
+        public void actionPerformed(ActionEvent event) {
+            Point2D new_pos = new Point2D.Double(
+                    current_pos_.getX() + direction_.getWidth(),
+                    current_pos_.getY() + direction_.getHeight());
+
+            current_pos_ = new_pos;
+            center_enabled = false;
+            repaint();
+        }
+    }
+
+    private void initAction() {
+        addMoveKeyStroke(LEFT, "H");
+        addMoveKeyStroke(RIGHT, "L");
+        addMoveKeyStroke(UP, "K");
+        addMoveKeyStroke(DOWN, "J");
+    }
+
     {
         initAction();
+        add(new ColorSwitchButton("switch", this));
     }
 
     public CenteredText() {
@@ -65,10 +102,10 @@ public class CenteredText extends JPanel {
                 text, (float)current_pos_.getX(), (float)current_pos_.getY());
     }
 
-    private void initAction() {
-        Action change_pos = new ChangePosition();
-        getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke("L"), "goleft");
-        getActionMap().put("goleft", change_pos);
+
+    private void addMoveKeyStroke(Dimension direction, String key) {
+        getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(key), key);
+        getActionMap().put(key, new ChangePosition(direction));
     }
 
 
@@ -77,13 +114,4 @@ public class CenteredText extends JPanel {
         return DEFAULT_SIZE;
     }
 
-    class ChangePosition extends AbstractAction {
-        public void actionPerformed(ActionEvent event) {
-            Point2D new_pos = new Point2D.Double(
-                    current_pos_.getX() + 10, current_pos_.getY());
-            current_pos_ = new_pos;
-            center_enabled = false;
-            repaint();
-        }
-    }
 }
