@@ -33,6 +33,18 @@ struct Token {
      * token type
      */
     Type type;
+
+    static std::string TypeString(Type type) {
+        static const char* type_string[] = {
+            "Number",
+            "Number",
+            "+ or -",
+            "* or /",
+            "(",
+            ")",
+        };
+        return type_string[type];
+    }
 };
 
 }  // namespace calc
