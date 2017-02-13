@@ -1,0 +1,9 @@
+@font-face {
+    font-family: 'AmbleRegular';
+    src: url('fonts/AmbleRegular.eot');
+    src: url('fonts/AmbleRegular.eot') format('embedded-opentype'),
+         url('fonts/AmbleRegular.woff2') format('woff2'),
+         url('fonts/AmbleRegular.woff') format('woff'),
+         url('fonts/AmbleRegular.ttf') format('truetype'),
+         url('fonts/AmbleRegular.svg#AmbleRegular') format('svg');
+}

@@ -1,0 +1,179 @@
+/* General setup */
+
+html {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0 auto;
+    min-width: 1000px;
+    max-width: 1400px;
+}
+
+
+/* Layout */
+
+section {
+    float: left;
+    width: 50%;
+    padding: 0;
+}
+
+aside {
+    float: left;
+    width: 30%;
+    padding: 0;
+}
+
+nav {
+    float: left;
+    width: 20%;
+    padding: 0;
+}
+
+footer {
+    clear: both;
+}
+
+header,
+section,
+aside,
+nav,
+footer {
+    padding: 20px;
+}
+
+
+/* header and footer */
+
+header,
+footer {
+    border-top: 5px solid #a66;
+    border-bottom: 5px solid #a66;
+}
+
+
+/* WRITE YOUR CODE BELOW HERE */
+
+@font-face {
+    font-family: 'Aaargh';
+    src: url('fonts/Aaargh.eot');
+    src: url('fonts/Aaargh.eot') format('embedded-opentype'), url('fonts/Aaargh.woff2') format('woff2'), url('fonts/Aaargh.woff') format('woff'), url('fonts/Aaargh.ttf') format('truetype'), url('fonts/Aaargh.svg#Aaargh') format('svg');
+}
+
+@font-face {
+    font-family: 'Amble';
+    src: url('fonts/AmbleRegular.eot');
+    src: url('fonts/AmbleRegular.eot') format('embedded-opentype'), url('fonts/AmbleRegular.woff2') format('woff2'), url('fonts/AmbleRegular.woff') format('woff'), url('fonts/AmbleRegular.ttf') format('truetype'), url('fonts/AmbleRegular.svg#AmbleRegular') format('svg');
+}
+
+section,
+aside,
+nav {
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 10px;
+    font-family: sans-serif;
+}
+
+
+/** inline link of the main section */
+
+h1 {
+    font-family: Aaargh, sans-serif;
+    font-size: 4em;
+    text-align: center;
+}
+
+h2 {
+    font-family: Aaargh, sans-serif;
+    font-size: 3em;
+}
+
+p,
+li {
+    font-family: Amble;
+    line-height: 1.5;
+    font-size: 1.6em;
+}
+
+a:link,
+a:visited {
+    color: rgb(170, 102, 102);
+}
+
+a:hover {
+    text-decoration: none;
+    background-color: gray;
+    color: white;
+}
+
+a:active {
+    background-color: black;
+    color: white;
+}
+
+section p a {
+    background-image: url(link-icon.png);
+    background-size: 1em 1em;
+    background-position: 100% 0;
+    background-repeat: no-repeat;
+    padding-right: 1.2em;
+}
+
+section {
+    padding-right: 5em;
+}
+
+
+/** list info */
+
+ul,
+ol {
+    padding-left: 35px;
+}
+
+ul li {
+    list-style-type: square;
+}
+
+ol li {
+    list-style-type: lower-alpha;
+}
+
+
+/** aside */
+
+
+/** nav */
+
+nav {
+    padding-top: 50px;
+}
+
+nav ul {
+    padding-left: 0;
+    margin: 0;
+}
+
+nav li {
+    list-style-type: none;
+}
+
+nav li a {
+    display: inline-block;
+    text-decoration: none;
+    font-size: 1.33em;
+    width: 80%;
+    margin: 0 10% 0.5em;
+    padding: 1em 0;
+    text-align: center;
+    border: solid rgb(170, 102, 102) 1px;
+}
+
+nav li:last-of-type a {
+    margin-bottom: 0;
+}
+
