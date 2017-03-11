@@ -1,8 +1,12 @@
 #include "io.h"
+#include <algorithm>
+#include <numeric>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 using std::string;
+using std::vector;
 using namespace tour_of_fp::io;
 
 int main(int argc, char** argv) {
@@ -14,5 +18,6 @@ int main(int argc, char** argv) {
             })
             .Bind([](const std::string& s) { return PrintLine(s); })
             .Infinite();
+
     a.Run();
 }

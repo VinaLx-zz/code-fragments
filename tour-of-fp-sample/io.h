@@ -130,14 +130,6 @@ auto IO<void, Closure>::Fmap(Func f) {
     return Bind([f]() { return Unit(f()); });
 }
 
-inline auto ReadLine() {
-    return Delay([]()->std::string {
-        std::string s;
-        std::getline(std::cin, s);
-        return s;
-    });
-}
-
 template <typename Closure>
 auto IO<void, Closure>::Infinite() const {
     return Delay([io = IO<void, Closure>(*this)]() {
@@ -145,6 +137,32 @@ auto IO<void, Closure>::Infinite() const {
             io.closure_();
         }
     });
+}
+
+inline auto Nothing() {
+    return Delay([]() {});
+}
+
+template <typename A>
+inline auto Read() {
+    return Delay([]() {
+        A a;
+        std::cin >> a;
+        return a;
+    });
+}
+
+inline auto ReadLine() {
+    return Delay([]() -> std::string {
+        std::string s;
+        std::getline(std::cin, s);
+        return s;
+    });
+}
+
+template <typename A>
+inline auto Print(const A& a) {
+    return Delay([a]() { std::cout << a; });
 }
 
 template <typename A>
