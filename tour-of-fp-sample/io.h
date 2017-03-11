@@ -36,12 +36,6 @@ class IO {
     }
 
     template <
-        typename V, std::enable_if_t<!std::is_same<V, void>::value, int> = 0>
-    V RunImpl() const {
-        return closure_();
-    }
-
-    template <
         typename Func,
         std::enable_if_t<
             detail::Helper<
@@ -63,12 +57,18 @@ class IO<void, Closure> {
         typename std::enable_if_t<
             std::is_same<std::result_of_t<Closure()>, void>::value, int> = 0>
     IO(Closure&& closure) : closure_(std::move(closure)){};
+
+    template <
+        typename std::enable_if_t<
+            std::is_same<std::result_of_t<Closure()>, void>::value, int> = 0>
+    IO(const Closure& closure) : closure_(closure){};
+
     template <
         typename Func,
         std::enable_if_t<
             detail::Helper<tour_of_fp::io::IO, std::result_of_t<Func()>>::value,
             int> = 0>
-    auto Bind(Func f);
+    auto Bind(Func f) const;
 
     template <typename Func>
     auto Fmap(Func f);
@@ -76,6 +76,8 @@ class IO<void, Closure> {
     void Run() const {
         closure_();
     }
+
+    auto Infinite() const;
 
   private:
     Closure closure_;
@@ -109,10 +111,10 @@ template <
     std::enable_if_t<
         detail::Helper<tour_of_fp::io::IO, std::result_of_t<Func()>>::value,
         int>>
-auto IO<void, Closure>::Bind(Func f) {
+auto IO<void, Closure>::Bind(Func f) const {
     return Delay([ a = IO<void, Closure>(*this), f ]() {
         a.Run();
-        f().Run();
+        return f().Run();
     });
 }
 
@@ -129,15 +131,25 @@ auto IO<void, Closure>::Fmap(Func f) {
 }
 
 inline auto ReadLine() {
-    return Delay([]() {
+    return Delay([]()->std::string {
         std::string s;
         std::getline(std::cin, s);
         return s;
     });
 }
 
-inline auto PrintLine(const std::string& s) {
-    return Delay([s]() { std::cout << s << '\n'; });
+template <typename Closure>
+auto IO<void, Closure>::Infinite() const {
+    return Delay([io = IO<void, Closure>(*this)]() {
+        for (;;) {
+            io.closure_();
+        }
+    });
+}
+
+template <typename A>
+inline auto PrintLine(const A& a) {
+    return Delay([a]() { std::cout << a << '\n'; });
 }
 
 }  // namespace tour_of_fp::io
