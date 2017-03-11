@@ -5,12 +5,10 @@
 using std::string;
 using namespace tour_of_fp::io;
 
-int aaa() {
-    return 100;
-}
 
 int main(int argc, char** argv) {
-    auto a = ReadLine().bind([](std::string size) { return PrintLine(size); });
-    a.run();
+    auto a = ReadLine()
+                 .Bind([](std::string line) { return PrintLine(line); })
+                 .Bind([]() { return PrintLine("Wow!"); });
+    a.Run();
 }
-
