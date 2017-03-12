@@ -26,21 +26,17 @@ struct Helper<T, T<A, Ignore>> {
 template <typename A, typename Closure>
 class IO {
   public:
-    template <
-        typename std::enable_if_t<
-            std::is_same<std::result_of_t<Closure()>, A>::value, int> = 0>
-    IO(Closure&& closure) : closure_(std::move(closure)) {}
+    IO(Closure&& closure) : closure_(std::move(closure)) {
+        static_assert(
+            std::is_same<std::result_of_t<Closure()>, A>::value,
+            "Function must have signature A()");
+    }
 
     A Run() const {
         return closure_();
     }
 
-    template <
-        typename Func,
-        std::enable_if_t<
-            detail::Helper<
-                tour_of_fp::io::IO, std::result_of_t<Func(A)>>::value,
-            int> = 0>
+    template <typename Func>
     auto Bind(Func f);
 
     template <typename Func>
@@ -53,21 +49,18 @@ class IO {
 template <typename Closure>
 class IO<void, Closure> {
   public:
-    template <
-        typename std::enable_if_t<
-            std::is_same<std::result_of_t<Closure()>, void>::value, int> = 0>
-    IO(Closure&& closure) : closure_(std::move(closure)){};
+    IO(Closure&& closure) : closure_(std::move(closure)) {
+        static_assert(
+            std::is_same<std::result_of_t<Closure()>, void>::value,
+            "Function must have signature void()");
+    };
 
     template <
         typename std::enable_if_t<
             std::is_same<std::result_of_t<Closure()>, void>::value, int> = 0>
     IO(const Closure& closure) : closure_(closure){};
 
-    template <
-        typename Func,
-        std::enable_if_t<
-            detail::Helper<tour_of_fp::io::IO, std::result_of_t<Func()>>::value,
-            int> = 0>
+    template <typename Func>
     auto Bind(Func f) const;
 
     template <typename Func>
@@ -95,23 +88,21 @@ auto Unit(const A& a) {
 }
 
 template <typename A, typename Closure>
-template <
-    typename Func,
-    std::enable_if_t<
-        detail::Helper<tour_of_fp::io::IO, std::result_of_t<Func(A)>>::value,
-        int>>
+template <typename Func>
 auto IO<A, Closure>::Bind(Func f) {
+    static_assert(
+        detail::Helper<tour_of_fp::io::IO, std::result_of_t<Func(A)>>::value,
+        "Function must Have signature IO<T>(A)");
     return Delay(
         [ a = IO<A, Closure>(*this), f ]() { return f(a.Run()).Run(); });
 }
 
 template <typename Closure>
-template <
-    typename Func,
-    std::enable_if_t<
-        detail::Helper<tour_of_fp::io::IO, std::result_of_t<Func()>>::value,
-        int>>
+template <typename Func>
 auto IO<void, Closure>::Bind(Func f) const {
+    static_assert(
+        detail::Helper<tour_of_fp::io::IO, std::result_of_t<Func()>>::value,
+        "Function must Have signature IO<T>()");
     return Delay([ a = IO<void, Closure>(*this), f ]() {
         a.Run();
         return f().Run();
