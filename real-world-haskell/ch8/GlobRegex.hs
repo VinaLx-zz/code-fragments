@@ -3,31 +3,36 @@ module GlobRegex (globToRegex, matchesGlob) where
 import Text.Regex.Posix
     ((=~))
 
-globToRegex :: String -> String
-globToRegex cs = '^' : globToRegex' cs ++ "$"
+type GlobError = String
+
+globToRegex :: String -> Either GlobError String
+globToRegex cs = (('^' : ) . (++ "$")) `fmap` globToRegex' cs
 
 matchesGlob :: FilePath -> String -> Bool
-name `matchesGlob` pat = name =~ globToRegex pat
+name `matchesGlob` pat =
+    case globToRegex pat of
+        Right pat' -> name =~ pat'
+        _          -> False
 
-globToRegex' :: String -> String
+globToRegex' :: String -> Either GlobError String
 globToRegex' cs =
     case cs of
-        ""                   -> ""
-        ('*' : cs)           -> ".*" ++ globToRegex' cs
-        ('?' : cs)           -> '.' : globToRegex' cs
-        ('[' : '!' : c : cs) -> "[^" ++ c : charClass cs
-        ('[' : c : cs)       -> '[' : c : charClass cs
-        ['[']                -> error "unterminated character class"
-        (c : cs)             -> escape c ++ globToRegex' cs
+        ""                   -> Right ""
+        ('*' : cs)           -> (".*" ++) `fmap` globToRegex' cs
+        ('?' : cs)           -> ('.' :) `fmap` globToRegex' cs
+        ('[' : '!' : c : cs) -> (("[^" ++) . (c : )) `fmap` charClass cs
+        ('[' : c : cs)       -> (('[' :) . (c :)) `fmap` charClass cs
+        ['[']                -> Left "unterminated character class"
+        (c : cs)             -> (escape c ++) `fmap` globToRegex' cs
 
 escape :: Char -> String
 escape c | c `elem` regexChars = '\\' : [c]
          | otherwise = [c]
          where regexChars = "\\+()^$.{}]|"
 
-charClass :: String -> String
+charClass :: String -> Either GlobError String
 charClass cs =
     case cs of
-        (']' : cs) -> ']' : globToRegex' cs
-        (c : cs)   -> c : charClass cs
-        []         -> error "unterminated character class"
+        (']' : cs) -> (']' : ) `fmap` globToRegex' cs
+        (c : cs)   -> (c : ) `fmap` charClass cs
+        []         -> Left "unterminated character class"
