@@ -1,20 +1,13 @@
 module BetterPredicate where
 
-import Control.Exception
-    (handle)
-import Control.Monad
-    (filterM)
-import Data.Time.Clock
-    (UTCTime)
-import GHC.IO.Exception
-    (IOException)
-import System.Directory
-    (Permissions (..), getModificationTime, getPermissions)
-import System.IO
-    (IOMode (..), hFileSize, withFile)
+import Control.Exception (handle)
+import Control.Monad     (filterM)
+import Data.Time.Clock   (UTCTime)
+import GHC.IO.Exception  (IOException)
+import System.Directory  (Permissions (..), getModificationTime, getPermissions)
+import System.IO         (IOMode (..), hFileSize, withFile)
 
-import RecursiveContents
-    (getRecursiveContents)
+import RecursiveContents (getRecursiveContents)
 
 type Predicate = FilePath -> Permissions -> Maybe Integer -> UTCTime -> Bool
 
@@ -51,7 +44,7 @@ liftP2 q f g w x y z = f w x y z `q` g w x y z
 
 andP, orP :: InfoP Bool -> InfoP Bool -> InfoP Bool
 andP = liftP2 (&&)
-orP = lftP2 (||)
+orP = liftP2 (||)
 
 liftPath :: (FilePath -> a) -> InfoP a
 liftPath f w _ _ _ = f w
