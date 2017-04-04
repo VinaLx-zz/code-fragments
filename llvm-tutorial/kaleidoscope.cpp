@@ -1,5 +1,6 @@
 #include <cctype>
 #include <cstdio>
+#include <map>
 #include <memory>
 #include <string>
 #include <utility>
@@ -177,7 +178,7 @@ std::unique_ptr<ExprAST> ParseIdentifierExpr() {
     if (gCurTok != ')') {
         for (;;) {
             if (auto arg = ParseExpression()) {
-                args.push_back(arg);
+                args.push_back(std::move(arg));
             } else {
                 return nullptr;
             }
@@ -204,6 +205,183 @@ std::unique_ptr<ExprAST> ParsePrimary() {
         case '(':
             return ParseParenExpr();
         default:
-            return LogError("unknown token wen expecting an expression");
+            return LogError("unknown token when expecting an expression");
     }
 }
+
+std::map<char, int> gBinopPrecedence;
+
+int GetTokPrecedence() {
+    if (not isascii(gCurTok)) {
+        return -1;
+    }
+    auto prec_iter = gBinopPrecedence.find(gCurTok);
+    if (prec_iter == gBinopPrecedence.end()) {
+        return -1;
+    }
+    return prec_iter->second;
+}
+
+/// binoprhs -> ('+' primary)*
+std::unique_ptr<ExprAST> ParseBinOpRHS(
+    int expr_prec, std::unique_ptr<ExprAST> lhs) {
+    for (;;) {
+        int token_prec = GetTokPrecedence();
+        if (token_prec < expr_prec) {
+            return lhs;
+        }
+        int op = gCurTok;
+        GetNextToken();
+        auto rhs = ParsePrimary();
+        if (not rhs) {
+            return nullptr;
+        }
+        int next_prec = GetTokPrecedence();
+        if (token_prec < next_prec) {
+            rhs = ParseBinOpRHS(token_prec + 1, std::move(rhs));
+            if (not rhs) {
+                return nullptr;
+            }
+        }
+
+        lhs =
+            std::make_unique<BinaryExprAST>(op, std::move(lhs), std::move(rhs));
+    }
+}
+
+std::unique_ptr<ExprAST> ParseExpression() {
+    auto lhs = ParsePrimary();
+    if (not lhs) {
+        return nullptr;
+    }
+    return ParseBinOpRHS(0, std::move(lhs));
+}
+
+/// prototype -> id '(' id* ')'
+std::unique_ptr<PrototypeAST> ParsePrototype() {
+    if (gCurTok != TOK_IDENTIFIER) {
+        return LogErrorP("Expected function name in prototype");
+    }
+    std::string fn_name = gIdentifierStr;
+    GetNextToken();
+    if (gCurTok != '(') {
+        return LogErrorP("Expect '(' in prototype");
+    }
+
+    std::vector<std::string> arg_names;
+    for (; GetNextToken() == TOK_IDENTIFIER;) {
+        arg_names.push_back(gIdentifierStr);
+    }
+    if (gCurTok != ')') {
+        return LogErrorP("Expect ')' in prototype");
+    }
+
+    GetNextToken();
+    return std::make_unique<PrototypeAST>(fn_name, std::move(arg_names));
+}
+
+/// definition -> 'def' prototype expression
+std::unique_ptr<FunctionAST> ParseDefinition() {
+    GetNextToken(); // consume 'def'
+    auto proto = ParsePrototype();
+    if (not proto) {
+        return nullptr;
+    }
+    if (auto expr = ParseExpression()) {
+        return std::make_unique<FunctionAST>(std::move(proto), std::move(expr));
+    }
+    return nullptr;
+}
+
+/// external -> 'extern' prototype
+std::unique_ptr<PrototypeAST> ParseExtern() {
+    GetNextToken(); // consume 'extern'
+    return ParsePrototype();
+}
+
+/// toplevelexpr -> expression
+std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
+    if (auto expr = ParseExpression()) {
+        auto proto = std::make_unique<PrototypeAST>("", std::vector<std::string>());
+        return std::make_unique<FunctionAST>(std::move(proto), std::move(expr));
+    }
+    return nullptr;
+}
+
+//===----------------------------------------------------------------------===//
+// Top-Level parsing
+//===----------------------------------------------------------------------===//
+
+static void HandleDefinition() {
+  if (ParseDefinition()) {
+    fprintf(stderr, "Parsed a function definition.\n");
+  } else {
+    // Skip token for error recovery.
+    GetNextToken();
+  }
+}
+
+static void HandleExtern() {
+  if (ParseExtern()) {
+    fprintf(stderr, "Parsed an extern\n");
+  } else {
+    // Skip token for error recovery.
+    GetNextToken();
+  }
+}
+
+static void HandleTopLevelExpression() {
+  // Evaluate a top-level expression into an anonymous function.
+  if (ParseTopLevelExpr()) {
+    fprintf(stderr, "Parsed a top-level expr\n");
+  } else {
+    // Skip token for error recovery.
+    GetNextToken();
+  }
+}
+
+/// top ::= definition | external | expression | ';'
+static void MainLoop() {
+  while (true) {
+    fprintf(stderr, "ready> ");
+    switch (gCurTok) {
+    case TOK_EOF:
+      return;
+    case ';': // ignore top-level semicolons.
+      GetNextToken();
+      break;
+    case TOK_DEF:
+      HandleDefinition();
+      break;
+    case TOK_EXTERN:
+      HandleExtern();
+      break;
+    default:
+      HandleTopLevelExpression();
+      break;
+    }
+  }
+}
+
+//===----------------------------------------------------------------------===//
+// Main driver code.
+//===----------------------------------------------------------------------===//
+
+int main() {
+  // Install standard binary operators.
+  // 1 is lowest precedence.
+  gBinopPrecedence['<'] = 10;
+  gBinopPrecedence['+'] = 20;
+  gBinopPrecedence['-'] = 20;
+  gBinopPrecedence['*'] = 40; // highest.
+
+  // Prime the first token.
+  fprintf(stderr, "ready> ");
+  GetNextToken();
+
+  // Run the main "interpreter loop" now.
+  MainLoop();
+
+  return 0;
+}
+
