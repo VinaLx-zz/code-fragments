@@ -5,6 +5,15 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "llvm/ADT/APFloat.h"     // llvm::APFloat
+#include "llvm/IR/Function.h"     // llvm::Function
+#include "llvm/IR/IRBuilder.h"    // llvm::Value, llvm::IRBuilder
+#include "llvm/IR/LLVMContext.h"  // llvm::LLVMContext
+#include "llvm/IR/Module.h"       // llvm::Module
+#include "llvm/IR/Type.h"         // llvm::Type
+#include "llvm/IR/Verifier.h"     // llvm::VerifyFunction
+
+using namespace llvm;
 
 enum Token {
     TOK_EOF = -1,
@@ -63,18 +72,37 @@ int GetToken() {
     return ThisChar;
 }
 
+llvm::LLVMContext gContext;
+llvm::IRBuilder<> gBuilder(gContext);
+std::unique_ptr<llvm::Module> gModule;
+std::map<std::string, Value*> gNamedValues;
+
 // parser
 
 class ExprAST {
   public:
     virtual ~ExprAST(){};
+    virtual Value* CodeGen() = 0;
 };
+
+std::unique_ptr<ExprAST> LogError(const std::string& str) {
+    fprintf(stderr, "LogError: %s\n", str.data());
+    return nullptr;
+}
+
+llvm::Value* LogErrorV(const std::string& str) {
+    LogError(str);
+    return nullptr;
+}
 
 class NumberExprAST : public ExprAST {
     double val_;
 
   public:
     NumberExprAST(double val) : val_(val){};
+    virtual Value* CodeGen() {
+        return llvm::ConstantFP::get(gContext, llvm::APFloat(val_));
+    }
 };
 
 class VariableExprAST : public ExprAST {
@@ -82,6 +110,14 @@ class VariableExprAST : public ExprAST {
 
   public:
     VariableExprAST(const std::string& name) : name_(name){};
+
+    virtual Value* CodeGen() {
+        auto iter = gNamedValues.find(name_);
+        if (iter == end(gNamedValues)) {
+            return LogErrorV("Unknown variable name " + name_);
+        }
+        return iter->second;
+    }
 };
 
 class BinaryExprAST : public ExprAST {
@@ -92,6 +128,28 @@ class BinaryExprAST : public ExprAST {
     BinaryExprAST(
         char op, std::unique_ptr<ExprAST> lhs, std::unique_ptr<ExprAST> rhs)
         : op_(op), lhs_(std::move(lhs)), rhs_(std::move(rhs)) {}
+
+    virtual Value* CodeGen() {
+        Value* lhs_value = lhs_->CodeGen();
+        Value* rhs_value = rhs_->CodeGen();
+        if (not lhs_value or not rhs_value) {
+            return nullptr;
+        }
+        switch (op_) {
+            case '+':
+                return gBuilder.CreateFAdd(lhs_value, rhs_value, "addtmp");
+            case '-':
+                return gBuilder.CreateFSub(lhs_value, rhs_value, "minustmp");
+            case '*':
+                return gBuilder.CreateFMul(lhs_value, rhs_value, "multitmp");
+            case '<':
+                return gBuilder.CreateUIToFP(
+                    gBuilder.CreateFCmpULT(lhs_value, rhs_value, "booltmp"),
+                    llvm::Type::getDoubleTy(gContext));
+            default:
+                return LogErrorV(std::string("invalid binary operator ") + op_);
+        }
+    }
 };
 
 class CallExprAST : public ExprAST {
@@ -102,6 +160,26 @@ class CallExprAST : public ExprAST {
     CallExprAST(
         const std::string& callee, std::vector<std::unique_ptr<ExprAST>> args)
         : callee_(callee), args_(std::move(args)){};
+    virtual Value* CodeGen() {
+        Function* callee = gModule->getFunction(callee_);
+        if (not callee) {
+            return LogErrorV("unknown function " + callee_ + " referenced");
+        }
+        if (callee->arg_size() != args_.size()) {
+            return LogErrorV(
+                "Incorrect argument passed, expect " +
+                std::to_string(callee->arg_size()));
+        }
+        std::vector<Value*> args;
+        for (auto& arg : args_) {
+            Value* va = arg->CodeGen();
+            if (not va) {
+                return nullptr;
+            }
+            args.push_back(va);
+        }
+        return gBuilder.CreateCall(callee, args, "calltmp");
+    }
 };
 
 class PrototypeAST {
@@ -111,6 +189,20 @@ class PrototypeAST {
   public:
     PrototypeAST(const std::string& name, std::vector<std::string> args)
         : name_(name), args_(std::move(args)) {}
+
+    virtual Function* CodeGen() {
+        std::vector<Type*> doubles(
+            args_.size(), llvm::Type::getDoubleTy(gContext));
+        llvm::FunctionType* ft =
+            FunctionType::get(Type::getDoubleTy(gContext), doubles, false);
+        llvm::Function* func = llvm::Function::Create(
+            ft, Function::ExternalLinkage, name_, gModule.get());
+        int i = 0;
+        for (auto& arg : func->args()) {
+            arg.setName(args_[i++]);
+        }
+        return func;
+    }
 
     const std::string& GetName() const {
         return name_;
@@ -125,16 +217,40 @@ class FunctionAST {
     FunctionAST(
         std::unique_ptr<PrototypeAST> proto, std::unique_ptr<ExprAST> body)
         : proto_(std::move(proto)), body_(std::move(body)) {}
+
+    virtual Value* CodeGen() {
+        Function* f = gModule->getFunction(proto_->GetName());
+        if (not f) {
+            f = proto_->CodeGen();
+        }
+        if (not f) {
+            return nullptr;
+        }
+        if (not f->empty()) {
+            return LogErrorV("Function redefinition of " + proto_->GetName());
+        }
+        llvm::BasicBlock* block =
+            llvm::BasicBlock::Create(gContext, "entry", f);
+        gBuilder.SetInsertPoint(block);
+
+        gNamedValues.clear();
+        for (auto& arg : f->args()) {
+            gNamedValues[arg.getName()] = &arg;
+        }
+
+        if (Value* ret_val = body_->CodeGen()) {
+            gBuilder.CreateRet(ret_val);
+            llvm::verifyFunction(*f);
+            return f;
+        }
+        f->eraseFromParent();
+        return nullptr;
+    }
 };
 
 int gCurTok;
 int GetNextToken() {
     return gCurTok = GetToken();
-}
-
-std::unique_ptr<ExprAST> LogError(const std::string& str) {
-    fprintf(stderr, "LogError: %s\n", str.data());
-    return nullptr;
 }
 
 std::unique_ptr<PrototypeAST> LogErrorP(const std::string& str) {
@@ -282,7 +398,7 @@ std::unique_ptr<PrototypeAST> ParsePrototype() {
 
 /// definition -> 'def' prototype expression
 std::unique_ptr<FunctionAST> ParseDefinition() {
-    GetNextToken(); // consume 'def'
+    GetNextToken();  // consume 'def'
     auto proto = ParsePrototype();
     if (not proto) {
         return nullptr;
@@ -295,26 +411,31 @@ std::unique_ptr<FunctionAST> ParseDefinition() {
 
 /// external -> 'extern' prototype
 std::unique_ptr<PrototypeAST> ParseExtern() {
-    GetNextToken(); // consume 'extern'
+    GetNextToken();  // consume 'extern'
     return ParsePrototype();
 }
 
 /// toplevelexpr -> expression
 std::unique_ptr<FunctionAST> ParseTopLevelExpr() {
     if (auto expr = ParseExpression()) {
-        auto proto = std::make_unique<PrototypeAST>("", std::vector<std::string>());
+        auto proto =
+            std::make_unique<PrototypeAST>("", std::vector<std::string>());
         return std::make_unique<FunctionAST>(std::move(proto), std::move(expr));
     }
     return nullptr;
 }
 
 //===----------------------------------------------------------------------===//
-// Top-Level parsing
+// Top-Level parsing and JIT Driver
 //===----------------------------------------------------------------------===//
 
 static void HandleDefinition() {
-  if (ParseDefinition()) {
-    fprintf(stderr, "Parsed a function definition.\n");
+  if (auto FnAST = ParseDefinition()) {
+    if (auto *FnIR = FnAST->CodeGen()) {
+      fprintf(stderr, "Read function definition:");
+      FnIR->print(errs());
+      fprintf(stderr, "\n");
+    }
   } else {
     // Skip token for error recovery.
     GetNextToken();
@@ -322,8 +443,12 @@ static void HandleDefinition() {
 }
 
 static void HandleExtern() {
-  if (ParseExtern()) {
-    fprintf(stderr, "Parsed an extern\n");
+  if (auto ProtoAST = ParseExtern()) {
+    if (auto *FnIR = ProtoAST->CodeGen()) {
+      fprintf(stderr, "Read extern: ");
+      FnIR->print(errs());
+      fprintf(stderr, "\n");
+    }
   } else {
     // Skip token for error recovery.
     GetNextToken();
@@ -332,8 +457,12 @@ static void HandleExtern() {
 
 static void HandleTopLevelExpression() {
   // Evaluate a top-level expression into an anonymous function.
-  if (ParseTopLevelExpr()) {
-    fprintf(stderr, "Parsed a top-level expr\n");
+  if (auto FnAST = ParseTopLevelExpr()) {
+    if (auto *FnIR = FnAST->CodeGen()) {
+      fprintf(stderr, "Read top-level expression:");
+      FnIR->print(errs());
+      fprintf(stderr, "\n");
+    }
   } else {
     // Skip token for error recovery.
     GetNextToken();
@@ -379,9 +508,14 @@ int main() {
   fprintf(stderr, "ready> ");
   GetNextToken();
 
+  // Make the module, which holds all the code.
+  gModule = llvm::make_unique<Module>("my cool jit", gContext);
+
   // Run the main "interpreter loop" now.
   MainLoop();
 
+  // Print out all of the generated code.
+  gModule->print(errs(), nullptr);
+
   return 0;
 }
-
