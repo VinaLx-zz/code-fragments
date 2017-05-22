@@ -35,6 +35,12 @@ struct In<T, T2, Ts...> : In<T, Ts...> {};
 template <typename T>
 struct In<T> : std::false_type {};
 
+template <typename T, template <typename...> class Temp>
+struct is_template : std::false_type {};
+
+template <template <typename...> class Temp, typename... Params>
+struct is_template<Temp<Params...>, Temp> : std::true_type{};
+
 }  // namespace util
 }  // namespace mips
 }  // namespace vinalx
