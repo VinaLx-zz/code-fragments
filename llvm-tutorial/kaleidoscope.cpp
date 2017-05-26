@@ -28,7 +28,8 @@ enum Token {
     TOK_THEN = -7,
     TOK_ELSE = -8,
     TOK_FOR = -9,
-    TOK_IN = -10
+    TOK_IN = -10,
+    TOK_VAR = -11
 };
 
 std::string gIdentifierStr;
@@ -66,6 +67,9 @@ int GetToken() {
         if (gIdentifierStr == "in") {
             return TOK_IN;
         }
+        if (gIdentifierStr == "var") {
+            return TOK_VAR;
+        }
         return TOK_IDENTIFIER;
     }
 
@@ -98,7 +102,15 @@ int GetToken() {
 llvm::LLVMContext gContext;
 llvm::IRBuilder<> gBuilder(gContext);
 std::unique_ptr<llvm::Module> gModule;
-std::map<std::string, Value*> gNamedValues;
+std::map<std::string, AllocaInst*> gNamedValues;
+
+AllocaInst* CreateEntryBlockAlloca(
+    Function* the_function, const std::string& name) {
+    IRBuilder<> tmp_builder(
+        &the_function->getEntryBlock(), the_function->getEntryBlock().begin());
+    return tmp_builder.CreateAlloca(
+        Type::getDoubleTy(gContext), 0, name.data());
+}
 
 // chapeter 4: optimization
 
@@ -148,12 +160,16 @@ class VariableExprAST : public ExprAST {
   public:
     VariableExprAST(const std::string& name) : name_(name){};
 
-    virtual Value* CodeGen() {
+    virtual Value* CodeGen() override {
         auto iter = gNamedValues.find(name_);
         if (iter == end(gNamedValues)) {
             return LogErrorV("Unknown variable name " + name_);
         }
-        return iter->second;
+        return gBuilder.CreateLoad(iter->second, name_.data());
+    }
+
+    const std::string& GetName() const {
+        return name_;
     }
 };
 
@@ -167,6 +183,22 @@ class BinaryExprAST : public ExprAST {
         : op_(op), lhs_(std::move(lhs)), rhs_(std::move(rhs)) {}
 
     virtual Value* CodeGen() {
+        if (op_ == '=') {
+            VariableExprAST* lhs = dynamic_cast<VariableExprAST*>(lhs_.get());
+            if (not lhs) {
+                return LogErrorV("destination of '=' must be a variable");
+            }
+            Value* val = rhs_->CodeGen();
+            if (not val) {
+                return nullptr;
+            }
+            Value* variable = gNamedValues[lhs->GetName()];
+            if (not variable) {
+                return LogErrorV("unknown variable name");
+            }
+            gBuilder.CreateStore(val, variable);
+            return val;
+        }
         Value* lhs_value = lhs_->CodeGen();
         Value* rhs_value = rhs_->CodeGen();
         if (not lhs_value or not rhs_value) {
@@ -272,7 +304,9 @@ class FunctionAST {
 
         gNamedValues.clear();
         for (auto& arg : f->args()) {
-            gNamedValues[arg.getName()] = &arg;
+            AllocaInst* alloca = CreateEntryBlockAlloca(f, arg.getName());
+            gBuilder.CreateStore(&arg, alloca);
+            gNamedValues[arg.getName()] = alloca;
         }
 
         if (Value* ret_val = body_->CodeGen()) {
@@ -361,18 +395,17 @@ class ForExprAST : public ExprAST {
             return nullptr;
         }
         Function* the_function = gBuilder.GetInsertBlock()->getParent();
+        AllocaInst* alloca = CreateEntryBlockAlloca(the_function, var_name_);
+        gBuilder.CreateStore(startv, alloca);
+
         // record pre_header_block
-        BasicBlock* pre_header_block = gBuilder.GetInsertBlock();
         BasicBlock* loop_block =
             BasicBlock::Create(gContext, "loop", the_function);
         gBuilder.CreateBr(loop_block);
         gBuilder.SetInsertPoint(loop_block);
-        PHINode* variable = gBuilder.CreatePHI(
-            Type::getDoubleTy(gContext), 2, var_name_.data());
-        variable->addIncoming(startv, pre_header_block);
         // create an inner block for the loop
-        Value* oldval = gNamedValues[var_name_];
-        gNamedValues[var_name_] = variable;
+        AllocaInst* oldval = gNamedValues[var_name_];
+        gNamedValues[var_name_] = alloca;
         if (not body_->CodeGen()) {
             return nullptr;
         }
@@ -385,25 +418,68 @@ class ForExprAST : public ExprAST {
         } else {
             stepv = ConstantFP::get(gContext, APFloat(1.0));
         }
-        Value* next_value = gBuilder.CreateFAdd(variable, stepv, "nextvar");
+        Value* current_var = gBuilder.CreateLoad(alloca);
+        Value* next_var = gBuilder.CreateFAdd(current_var, stepv, "nextvar");
+        gBuilder.CreateStore(next_var, alloca);
         Value* endv = end_->CodeGen();
         if (not endv) {
             return nullptr;
         }
         endv = gBuilder.CreateFCmpONE(
             endv, ConstantFP::get(gContext, APFloat(0.0)), "loopcond");
-        BasicBlock* loop_end_block = gBuilder.GetInsertBlock();
         BasicBlock* after_block =
             BasicBlock::Create(gContext, "afterloop", the_function);
         gBuilder.CreateCondBr(endv, loop_block, after_block);
         gBuilder.SetInsertPoint(after_block);
-        variable->addIncoming(next_value, loop_end_block);
         // restore context
         if (oldval)
             gNamedValues[var_name_] = oldval;
         else
             gNamedValues.erase(var_name_);
+
         return Constant::getNullValue(Type::getDoubleTy(gContext));
+    }
+};
+
+class VarExprAST : public ExprAST {
+    std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> var_names_;
+    std::unique_ptr<ExprAST> body_;
+
+  public:
+    VarExprAST(
+        std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> var_names,
+        std::unique_ptr<ExprAST> body)
+        : var_names_(std::move(var_names)), body_(std::move(body)) {}
+    Value* CodeGen() override {
+
+        std::vector<AllocaInst*> old_bindings;
+        Function* the_function = gBuilder.GetInsertBlock()->getParent();
+
+        for (auto& p : var_names_) {
+            const std::string& var_name = p.first;
+            ExprAST* init = p.second.get();
+            Value* initv = nullptr;
+            if (init) {
+                initv = init->CodeGen();
+                if (not initv) {
+                    return nullptr;
+                }
+            } else {
+                initv = ConstantFP::get(gContext, APFloat(0.0));
+            }
+            AllocaInst* alloca = CreateEntryBlockAlloca(the_function, var_name);
+            gBuilder.CreateStore(initv, alloca);
+            old_bindings.push_back(gNamedValues[var_name]);
+            gNamedValues[var_name] = alloca;
+        }
+        Value* bodyv = body_->CodeGen();
+        if (not bodyv) {
+            return nullptr;
+        }
+        for (int i = 0; i < var_names_.size(); ++i) {
+            gNamedValues[var_names_[i].first] = old_bindings[i];
+        }
+        return bodyv;
     }
 };
 
@@ -420,6 +496,7 @@ std::unique_ptr<PrototypeAST> LogErrorP(const std::string& str) {
 std::unique_ptr<ExprAST> ParseExpression();
 std::unique_ptr<ExprAST> ParseIfExpr();
 std::unique_ptr<ExprAST> ParseForExpr();
+std::unique_ptr<ExprAST> ParseVarExpr();
 
 /// numberexpr -> number
 std::unique_ptr<ExprAST> ParseNumberExpr() {
@@ -485,6 +562,8 @@ std::unique_ptr<ExprAST> ParsePrimary() {
             return ParseIfExpr();
         case TOK_FOR:
             return ParseForExpr();
+        case TOK_VAR:
+            return ParseVarExpr();
         default:
             return LogError("unknown token when expecting an expression");
     }
@@ -656,6 +735,42 @@ std::unique_ptr<ExprAST> ParseForExpr() {
         id_name, std::move(start), std::move(end), std::move(step),
         std::move(body));
 }
+
+std::unique_ptr<ExprAST> ParseVarExpr() {
+    GetNextToken();
+    std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> var_names;
+    if (gCurTok != TOK_IDENTIFIER) {
+        return LogError("expect identifier after var");
+    }
+    for (;;) {
+        std::string name(gIdentifierStr);
+        GetNextToken();
+        std::unique_ptr<ExprAST> init;
+        if (gCurTok == '=') {
+            GetNextToken();
+            init = ParseExpression();
+            if (not init) {
+                return nullptr;
+            }
+        }
+        var_names.push_back({name, std::move(init)});
+        if (gCurTok != ',')
+            break;
+        GetNextToken();
+        if (gCurTok != TOK_IDENTIFIER) {
+            return LogError("expect identifier after var");
+        }
+    }
+    if (gCurTok != TOK_IN) {
+        return LogError("expected 'in' keyword after 'var'");
+    }
+    GetNextToken();
+    auto body = ParseExpression();
+    if (not body) {
+        return nullptr;
+    }
+    return std::make_unique<VarExprAST>(std::move(var_names), std::move(body));
+}
 //===----------------------------------------------------------------------===//
 // Top-Level parsing and JIT Driver
 //===----------------------------------------------------------------------===//
@@ -730,6 +845,7 @@ static void MainLoop() {
 int main() {
     // Install standard binary operators.
     // 1 is lowest precedence.
+    gBinopPrecedence['='] = 2;
     gBinopPrecedence['<'] = 10;
     gBinopPrecedence['+'] = 20;
     gBinopPrecedence['-'] = 20;
