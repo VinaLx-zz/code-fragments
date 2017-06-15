@@ -1,0 +1,61 @@
+{
+    "editor.fontSize": 12.5,
+    "editor.cursorBlinking": "solid",
+
+    "workbench.colorTheme": "One Monokai",
+    "workbench.iconTheme": "vscode-icons",
+
+    "files.trimTrailingWhitespace": true,
+
+    "vim.disableAnnoyingNeovimMessage": true,
+    "vim.easymotion": true,
+    "vim.leader": "-",
+    "vim.hlsearch": true,
+    "vim.otherModesKeyBindingsNonRecursive": [{
+        "before": ["W"],
+        "commands": [{
+            "command": "workbench.action.files.save"
+        }]
+    }, {
+        "before": ["<leader>", "c", "f"],
+        "commands": [{
+            "command": "editor.action.formatDocument"
+        }]
+    }, {
+        "before": ["<leader>", "n", "h"],
+        "commands": [{
+            "command": ":nohl"
+        }]
+    }, {
+        "before": ["H"],
+        "commands": [{
+            "command": "workbench.action.focusPreviousGroup"
+        }]
+    }, {
+        "before": ["L"],
+        "commands": [{
+            "command": "workbench.action.focusNextGroup"
+        }]
+    }, {
+        "before": ["Q"],
+        "commands": [{
+            "command": ":q"
+        }]
+    }, {
+        "before": [" "],
+        "after": ["<leader>", "<leader>"]
+    }],
+    "vim.easymotionMarkerFontFamily": "Menlo",
+    "vim.easymotionMarkerHeight": 12,
+    "vim.easymotionMarkerYOffset": 12,
+    "vim.easymotionMarkerBackgroundColor": "rgb(40, 44, 52)",
+    "vim.easymotionMarkerForegroundColorOneChar": "#eeeeee",
+    "vim.easymotionMarkerForegroundColorTwoChar": "rgb(247, 225, 120)",
+
+
+    "python.pythonPath": "python3",
+    "python.linting.pep8Enabled": true,
+
+    "guides.indent.backgrounds": [],
+    "guides.active.color.dark": "rgb(100, 100, 100)"
+}
