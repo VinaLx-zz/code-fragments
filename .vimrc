@@ -31,7 +31,7 @@ let mapleader = "-"
 
 nnoremap <leader>rl :source $MYVIMRC<CR>
 nnoremap <leader>wq :wq<CR>
-nnoremap <leader>nh :nohlsearch<CR>
+nnoremap <silent> <leader>nh :nohlsearch<CR>
 
 " CTRL-s save
 inoremap <c-s> <c-c>:update<CR>
@@ -122,6 +122,7 @@ Plugin 'mattn/emmet-vim'
 Plugin 'pangloss/vim-javascript'
 Plugin 'wlangstroth/vim-racket'
 Plugin 'kien/rainbow_parentheses.vim'
+Plugin 'tpope/vim-repeat'
 
 " All of your Plugins must be added before the following line
 call vundle#end()            " required
@@ -223,6 +224,10 @@ augroup CustomSnippet
             \ O#include ""<left>
 augroup end
 
+augroup AutoPep8
+    autocmd!
+    autocmd FileType python nnoremap <leader>cf :%!autopep8 -a -a -<CR>
+
 augroup EditConvenience
     autocmd!
     autocmd FileType c,cpp,java inoremap <C-e> <end>;
@@ -295,8 +300,12 @@ inoremap <expr><TAB>  pumvisible() ? "\<C-n>" : "\<TAB>"
 
 augroup Lisp
     autocmd!
-    autocmd filetype racket :RainbowParenthesesToggle
-    autocmd filetype racket nnoremap K <C-W>k
+    autocmd filetype racket :RainbowParenthesesActivate
+    autocmd filetype racket :RainbowParenthesesLoadRound
+    autocmd filetype racket :RainbowParenthesesLoadSquare
+    autocmd filetype racket :RainbowParenthesesLoadBraces
+    " disable racket plugin
+    autocmd filetype racket nnoremap K <C-W>k 
 
     " same as scheme
     autocmd filetype racket let g:neocomplete#keyword_patterns.racket =
