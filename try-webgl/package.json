@@ -1,0 +1,20 @@
+{
+  "name": "try-webgl",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "npm run tsc && node app.js",
+    "tsc": "tsc"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@types/express": "^4.0.36",
+    "@types/webgl-ext": "0.0.28",
+    "@types/webgl2": "0.0.1",
+    "express": "^4.15.3",
+    "typescript": "^2.4.1"
+  }
+}
