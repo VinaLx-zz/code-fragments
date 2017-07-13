@@ -109,8 +109,12 @@ function drawBackground(color: string): void {
 
 function start() {
     resetCanvasSize();
-    const rocker = new Rocker([canvas.height / 5, canvas.height * 4 / 5], canvas.height / 6, "white");
-    const ball = new Ball(new Circle([canvas.width / 2, canvas.height / 2], 10, "yellow"), [1, 0], 5);
+    const sf = 5;
+    const rocker = new Rocker(
+        [canvas.height / (sf - 1), canvas.height * (sf - 2) / (sf - 1)],
+        canvas.height / sf, "white");
+    const ball = new Ball(
+        new Circle([canvas.width / 2, canvas.height / 2], 13, "yellow"), [1, 0], 5);
     console.log(canvas.width, canvas.height);
     function repaint(): void {
         drawBackground("black");
@@ -125,9 +129,10 @@ function start() {
         rocker.moveDotToward([event.x, event.y]);
         ball.direction = rocker.direction();
     }
-    canvas.ontouchmove = (e: Event) => {
+    canvas.ontouchmove = (e: TouchEvent) => {
         e.preventDefault();
-        rocker.moveDotToward([(<MouseEvent>e).clientX, (e as MouseEvent).clientY]);
+        const touch = e.touches[0];
+        rocker.moveDotToward([touch.clientX, touch.clientY]);
         ball.direction = rocker.direction();
     }
     canvas.onmousedown = (event: MouseEvent) => {
