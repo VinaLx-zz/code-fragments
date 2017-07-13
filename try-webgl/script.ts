@@ -112,7 +112,6 @@ function start() {
     const rocker = new Rocker([canvas.height / 5, canvas.height * 4 / 5], canvas.height / 6, "white");
     const ball = new Ball(new Circle([canvas.width / 2, canvas.height / 2], 10, "yellow"), [1, 0], 5);
     console.log(canvas.width, canvas.height);
-    document.ontouchmove = e => e.preventDefault();
     function repaint(): void {
         drawBackground("black");
         rocker.draw(ctx);
@@ -124,6 +123,11 @@ function start() {
         if (! (event.buttons & 1))
             return;
         rocker.moveDotToward([event.x, event.y]);
+        ball.direction = rocker.direction();
+    }
+    canvas.ontouchmove = (e: Event) => {
+        e.preventDefault();
+        rocker.moveDotToward([(<MouseEvent>e).clientX, (e as MouseEvent).clientY]);
         ball.direction = rocker.direction();
     }
     canvas.onmousedown = (event: MouseEvent) => {
