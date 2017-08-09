@@ -1,6 +1,3 @@
-import Control.Applicative
-import Control.Monad
-
 data AT a = L a | B (AT a) (AT a)
 
 instance Functor AT where
