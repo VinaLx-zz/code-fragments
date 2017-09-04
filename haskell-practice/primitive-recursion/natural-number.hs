@@ -1,3 +1,5 @@
+module Nat where
+
 data Nat = Zero | Succ Nat deriving (Show)
 
 one :: Nat
@@ -34,7 +36,7 @@ mult n m = primitive n Zero induct
 type EqInduct = Nat -> Bool
 eqInduct :: Nat -> EqInduct -> EqInduct
 eqInduct _ eqN = \v -> primitive v False induct
-    where induct v _ = if eqN v then True else False
+    where induct v _ = eqN v
 eqZero :: EqInduct
 eqZero n = primitive n True $ \_ _ -> False
 
@@ -43,13 +45,13 @@ equal n = primitive n eqZero eqInduct
 
 type GeInduct = EqInduct
 geInduct :: Nat -> GeInduct -> GeInduct
-geInduct n geN = \v -> not $ not (geN v) || equal v n
+geInduct n geN v = not $ not (geN v) || equal v n
 
 geZero :: EqInduct
 geZero = const True
 
 ge :: Nat -> Nat -> Bool
-ge n m = primitive m geZero geInduct $ n
+ge n m = primitive m geZero geInduct n
 
 search :: (Nat -> Bool) -> Nat -> Nat
 search p n = primitive n Zero induct
