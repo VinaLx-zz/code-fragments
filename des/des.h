@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <iostream>
 #include <type_traits>
@@ -17,22 +18,14 @@ class DES {
         text = Iterate(text, GenerateSubkeys(key, true));
         return FinalPermutation(text);
     }
-    template <typename Result = uint64_t, typename Int, size_t Length>
-    static Result Permutation(Int i, const size_t (&table)[Length]) {
-        std::bitset<Length> reference(i), result;
-        for (size_t i = 0; i < Length; ++i) {
-            if (table[i] == 0) {
-                continue;
-            }
+    template <size_t OutLength, size_t InLength = OutLength, typename I>
+    static uint64_t Permutation(I i, const size_t (&table)[OutLength]) {
+        std::bitset<InLength> reference(i);
+        std::bitset<OutLength> result;
+        for (size_t i = 0; i < OutLength; ++i) {
             result.set(i, reference.test(table[i] - 1));
         }
-        if constexpr (sizeof(unsigned long) == sizeof(Result)) {
-            return result.to_ulong();
-        } else if (sizeof(unsigned long long) == sizeof(Result)) {
-            return result.to_ullong();
-        } else if (sizeof(Result) == 4) {
-            return result.to_ulong() & 0xFFFF'FFFF;
-        }
+        return result.to_ullong();
     }
 
     static constexpr size_t kInitialPermTable[64] = {
@@ -62,12 +55,12 @@ class DES {
                      new_right = left ^ Feistel(right, subkeys[c]);
             left = new_left, right = new_right;
         }
-        return uint64_t(right) << 32 | uint64_t(left);
+        return uint64_t(right) << 32 | left;
     }
 
-    static uint32_t Feistel(uint32_t i, uint64_t k) {
+    static uint64_t Feistel(uint64_t i, uint64_t k) {
         uint64_t t = ExpansionPermutation(i) ^ k;
-        uint32_t substituted = Substitution(t);
+        uint64_t substituted = Substitution(t);
         return FeistelPermutation(substituted);
     }
 
@@ -77,7 +70,7 @@ class DES {
         22, 23, 24, 25, 24, 25, 26, 27, 28, 29, 28, 29, 30, 31, 32, 1};
 
     // expand to 48 bits
-    static uint64_t ExpansionPermutation(uint32_t i) {
+    static uint64_t ExpansionPermutation(uint64_t i) {
         return Permutation(i, kExpandPermTable);
     }
 
@@ -85,8 +78,8 @@ class DES {
         16, 7, 20, 21, 29, 12, 28, 17, 1,  15, 23, 26, 5,  18, 31, 10,
         2,  8, 24, 14, 32, 27, 3,  9,  19, 13, 30, 6,  22, 11, 4,  25};
 
-    static uint32_t FeistelPermutation(uint32_t i) {
-        return Permutation<int32_t>(i, kFeistelPermTable);
+    static uint64_t FeistelPermutation(uint64_t i) {
+        return Permutation(i, kFeistelPermTable);
     }
 
     static constexpr uint8_t kSBoxes[8][4][16] = {
@@ -167,13 +160,13 @@ class DES {
     static constexpr size_t kKeyShifts[16] = {1, 1, 2, 2, 2, 2, 2, 2,
                                               1, 2, 2, 2, 2, 2, 2, 1};
 
-    static constexpr size_t kKeyPermTable1[64] = {
+    static constexpr size_t kKeyPermTable1[56] = {
         57, 49, 41, 33, 25, 17, 9,  1,  58, 50, 42, 34, 26, 18,
         10, 2,  59, 51, 43, 35, 27, 19, 11, 3,  60, 52, 44, 36,
         63, 55, 47, 39, 31, 23, 15, 7,  62, 54, 46, 38, 30, 22,
         14, 6,  61, 53, 45, 37, 29, 21, 13, 5,  28, 20, 12, 4};
 
-    static constexpr size_t kKeyPermTable2[56] = {
+    static constexpr size_t kKeyPermTable2[48] = {
         14, 17, 11, 24, 1,  5,  3,  28, 15, 6,  21, 10, 23, 19, 12, 4,
         26, 8,  16, 7,  27, 20, 13, 2,  41, 52, 31, 37, 47, 55, 30, 40,
         51, 45, 33, 48, 44, 49, 39, 56, 34, 53, 46, 42, 50, 36, 29, 32};
@@ -183,14 +176,14 @@ class DES {
     GenerateSubkeys(uint64_t key, bool decrypt = false) {
         std::vector<uint64_t> subkeys;
         uint64_t permed =
-            Permutation(key, kKeyPermTable1) & 0xFF'FFFF'FFFF'FFFF;
-        uint64_t c = permed >> 28, d = permed & 0xFFF'FFFF;
+            Permutation<56, 64>(key, kKeyPermTable1);
+        uint32_t c = permed >> 28, d = permed & 0xFFF'FFFF;
         for (int i = 0; i < 16; ++i) {
             auto shift = kKeyShifts[i];
             c = c >> (28 - shift) | c << shift;
             d = d >> (28 - shift) | d << shift;
             subkeys.push_back(
-                Permutation(c << 28 | d, kKeyPermTable2) & 0xFFFF'FFFF'FFFF);
+                Permutation<48, 56>(uint64_t(c) << 28 | d, kKeyPermTable2));
         }
         if (decrypt) {
             std::reverse(begin(subkeys), end(subkeys));

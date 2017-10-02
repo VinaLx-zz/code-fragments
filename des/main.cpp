@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <limits>
 #include <random>
+#include <type_traits>
 
 constexpr int kTestCases = 100;
 
