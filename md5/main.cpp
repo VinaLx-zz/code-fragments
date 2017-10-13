@@ -8,4 +8,5 @@ void PrintHash(const std::string& s) {
 int main() {
     PrintHash("");
     PrintHash("The quick brown fox jumps over the lazy dog");
+    PrintHash("The quick brown fox jumps over the lazy dog.");
 }

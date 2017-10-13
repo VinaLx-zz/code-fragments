@@ -2,11 +2,8 @@
 #define VINALX_MD5_
 
 #include <algorithm>
-#include <bitset>
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
-#include <iostream>
 #include <memory>
 #include <string>
 
@@ -119,24 +116,27 @@ class MD5 {
             const auto &chunk = chunks[i];
             uint32_t aa = a, bb = b, cc = c, dd = d;
             for (size_t j = 0; j < 64; ++j) {
-                uint32_t f = aa + kF[j / 16](bb, cc, dd) + kK[j] + chunk[kIdxF[j / 16](j)];
+                uint32_t f = RotateLeft(
+                    aa + kF[j / 16](bb, cc, dd) + chunk[kIdxF[j / 16](j)] +
+                        kK[j],
+                    kShift[j]);
                 aa = dd;
                 dd = cc;
                 cc = bb;
-                bb = bb + RotateLeft(f, kShift[j]);
+                bb = f + bb;
             }
-            a = a + aa;
-            b = b + bb;
-            c = c + cc;
-            d = d + dd;
+            a += aa;
+            b += bb;
+            c += cc;
+            d += dd;
         }
-        std::unique_ptr<uint32_t[]> h(new uint32_t[4]);
-        h[0] = a;
-        h[1] = b;
-        h[2] = c;
-        h[3] = d;
+        std::unique_ptr<uint32_t[]> res(new uint32_t[4]);
+        res[0] = a;
+        res[1] = b;
+        res[2] = c;
+        res[3] = d;
         return std::unique_ptr<uint8_t[]>(
-            reinterpret_cast<uint8_t *>(h.release()));
+            reinterpret_cast<uint8_t *>(res.release()));
     }
 };
 
