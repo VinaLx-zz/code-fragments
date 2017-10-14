@@ -87,8 +87,37 @@ class MD5 {
             pl / 64};
     }
 
-    static uint32_t RotateLeft(uint32_t x, size_t n) {
+    static uint32_t RotateL(uint32_t x, size_t n) {
         return x << n | x >> (32 - n);
+    }
+
+    static void AbsordChunk(
+        Chunk &chunk, uint32_t &a, uint32_t &b, uint32_t &c, uint32_t &d) {
+        uint32_t aa = a, bb = b, cc = c, dd = d;
+        for (size_t i = 0; i < 64; ++i) {
+            uint32_t f = RotateL(
+                aa + kF[i / 16](bb, cc, dd) + chunk[kIdxF[i / 16](i)] + kK[i],
+                kShift[i]);
+            aa = dd;
+            dd = cc;
+            cc = bb;
+            bb = f + bb;
+        }
+        a += aa;
+        b += bb;
+        c += cc;
+        d += dd;
+    }
+
+    static std::unique_ptr<uint8_t[]>
+    Pack(uint32_t a, uint32_t b, uint32_t c, uint32_t d) {
+        std::unique_ptr<uint32_t[]> res(new uint32_t[4]);
+        res[0] = a;
+        res[1] = b;
+        res[2] = c;
+        res[3] = d;
+        return std::unique_ptr<uint8_t[]>(
+            reinterpret_cast<uint8_t *>(res.release()));
     }
 
   public:
@@ -106,37 +135,14 @@ class MD5 {
         return Hash(reinterpret_cast<const uint8_t *>(s.data()), s.size());
     }
     static std::unique_ptr<uint8_t[]> Hash(const uint8_t *text, size_t bytes) {
-        auto arr = Padding(text, bytes);
-        std::unique_ptr<Chunk[]> chunks = std::move(arr.first);
-        size_t n = arr.second;
+        auto chunks = Padding(text, bytes);
 
         uint32_t a = kInit[0], b = kInit[1], c = kInit[2], d = kInit[3];
 
-        for (int i = 0; i < n; ++i) {
-            const auto &chunk = chunks[i];
-            uint32_t aa = a, bb = b, cc = c, dd = d;
-            for (size_t j = 0; j < 64; ++j) {
-                uint32_t f = RotateLeft(
-                    aa + kF[j / 16](bb, cc, dd) + chunk[kIdxF[j / 16](j)] +
-                        kK[j],
-                    kShift[j]);
-                aa = dd;
-                dd = cc;
-                cc = bb;
-                bb = f + bb;
-            }
-            a += aa;
-            b += bb;
-            c += cc;
-            d += dd;
+        for (int i = 0; i < chunks.second; ++i) {
+            AbsordChunk(chunks.first[i], a, b, c, d);
         }
-        std::unique_ptr<uint32_t[]> res(new uint32_t[4]);
-        res[0] = a;
-        res[1] = b;
-        res[2] = c;
-        res[3] = d;
-        return std::unique_ptr<uint8_t[]>(
-            reinterpret_cast<uint8_t *>(res.release()));
+        return Pack(a, b, c, d);
     }
 };
 
