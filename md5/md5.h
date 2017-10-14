@@ -135,7 +135,8 @@ class MD5 {
         return Hash(reinterpret_cast<const uint8_t *>(s.data()), s.size());
     }
     static std::unique_ptr<uint8_t[]> Hash(const uint8_t *text, size_t bytes) {
-        auto chunks = Padding(text, bytes);
+        std::pair<std::unique_ptr<Chunk[]>, size_t> chunks =
+            Padding(text, bytes);
 
         uint32_t a = kInit[0], b = kInit[1], c = kInit[2], d = kInit[3];
 

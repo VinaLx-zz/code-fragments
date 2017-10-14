@@ -19,9 +19,15 @@ void SimpleTest() {
     std::cout << test3 << '\n';
     assert(test3 == "e4d909c290d0fb1ca068ffaddf22cbd0");
 
-    std::cout << "pass\n";
+    std::cout << "test pass\n";
 }
 
-int main() {
-    SimpleTest();
+int main(int argc, char **argv) {
+    if (argc == 1) {
+        SimpleTest();
+        return 0;
+    }
+    for (int i = 1; i < argc; ++i) {
+        std::cout << PrettyHash(argv[i]) << '\n';
+    }
 }
