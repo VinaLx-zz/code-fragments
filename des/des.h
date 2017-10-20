@@ -1,21 +1,22 @@
 #include <algorithm>
-#include <array>
 #include <cstdint>
-#include <iostream>
-#include <type_traits>
 #include <utility>
+#include <bitset>
 #include <vector>
 
 class DES {
   public:
     static uint64_t Encrypt(uint64_t text, uint64_t key) {
         text = InitialPermutation(text);
-        text = Iterate(text, GenerateSubkeys(key));
+        auto subkeys = GenerateSubkeys(key);
+        text = Iterate(text, subkeys);
         return FinalPermutation(text);
     }
     static uint64_t Decrypt(uint64_t text, uint64_t key) {
         text = InitialPermutation(text);
-        text = Iterate(text, GenerateSubkeys(key, true));
+        auto subkeys = GenerateSubkeys(key);
+        std::reverse(begin(subkeys), end(subkeys));
+        text = Iterate(text, subkeys);
         return FinalPermutation(text);
     }
     template <size_t OutLength, size_t InLength = OutLength, typename I>
@@ -58,9 +59,9 @@ class DES {
         return uint64_t(right) << 32 | left;
     }
 
-    static uint64_t Feistel(uint64_t i, uint64_t k) {
+    static uint32_t Feistel(uint32_t i, uint64_t k) {
         uint64_t t = ExpansionPermutation(i) ^ k;
-        uint64_t substituted = Substitution(t);
+        uint32_t substituted = Substitution(t);
         return FeistelPermutation(substituted);
     }
 
@@ -70,7 +71,7 @@ class DES {
         22, 23, 24, 25, 24, 25, 26, 27, 28, 29, 28, 29, 30, 31, 32, 1};
 
     // expand to 48 bits
-    static uint64_t ExpansionPermutation(uint64_t i) {
+    static uint64_t ExpansionPermutation(uint32_t i) {
         return Permutation(i, kExpandPermTable);
     }
 
@@ -78,7 +79,7 @@ class DES {
         16, 7, 20, 21, 29, 12, 28, 17, 1,  15, 23, 26, 5,  18, 31, 10,
         2,  8, 24, 14, 32, 27, 3,  9,  19, 13, 30, 6,  22, 11, 4,  25};
 
-    static uint64_t FeistelPermutation(uint64_t i) {
+    static uint32_t FeistelPermutation(uint32_t i) {
         return Permutation(i, kFeistelPermTable);
     }
 
@@ -173,7 +174,7 @@ class DES {
 
     // only use 56 bits of key
     static std::vector<uint64_t>
-    GenerateSubkeys(uint64_t key, bool decrypt = false) {
+    GenerateSubkeys(uint64_t key) {
         std::vector<uint64_t> subkeys;
         uint64_t permed =
             Permutation<56, 64>(key, kKeyPermTable1);
@@ -184,9 +185,6 @@ class DES {
             d = d >> (28 - shift) | d << shift;
             subkeys.push_back(
                 Permutation<48, 56>(uint64_t(c) << 28 | d, kKeyPermTable2));
-        }
-        if (decrypt) {
-            std::reverse(begin(subkeys), end(subkeys));
         }
         return subkeys;
     }
