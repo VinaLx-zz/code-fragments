@@ -16,7 +16,7 @@ puzzle::Puzzle<N> RandomPickNext(const puzzle::Puzzle<N> &p) {
 
 template <size_t N>
 auto NewSchedule() {
-    return [n = 10000.0]() mutable {
+    return [n = 1000.0]() mutable {
         auto ret = n;
         if (n > 0) {
             n -= 1;
@@ -26,8 +26,7 @@ auto NewSchedule() {
 }
 
 inline double P(double t, double de) {
-    auto ret = t / 10000 / (-de);
-    return ret;
+    return std::exp(t / de);
 }
 
 inline auto RandomGen() {
