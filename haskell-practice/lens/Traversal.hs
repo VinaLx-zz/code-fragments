@@ -3,8 +3,6 @@
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE RankNTypes             #-}
 
-
-
 module Traversal where
 
 -- import Lens (Lens, Lens')
@@ -15,9 +13,16 @@ import Data.Monoid
 type Traversal s t a b = forall f. Applicative f => (a -> f b) -> s -> f t
 type Traversal' s a = Traversal s s a a
 
+-- Traversal Laws:
+--
+-- Identity:    t pure === pure
+-- Composition: fmap (t f) . t g === getCompose . t (Compose . fmap f . g)
+
 type Getting r s a = (a -> Const r a) -> s -> Const r s
 type Setting s t a b = (a -> Identity b) -> s -> Identity t
 
+-- not satisfying the composition law, which requires two identical traversals
+-- should see same element
 _all :: Eq a => a -> Traversal' [a] a
 _all a f = traverse update
     where update a' = if a' == a then f a else pure a'
