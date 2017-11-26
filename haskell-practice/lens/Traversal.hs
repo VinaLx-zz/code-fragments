@@ -49,5 +49,5 @@ class Each s t a b | s -> a, t -> b, s b -> t, t a -> s where
     each :: Traversal s t a b
 
 instance Traversable t => Each (t a) (t b) a b where
-    -- each :: (a -> f b) -> t a -> f t b
+    -- each :: (Traversable t, Applicative f) => (a -> f b) -> t a -> f (t b)
     each = traverse
