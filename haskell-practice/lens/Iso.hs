@@ -29,6 +29,12 @@ newtype Forget r a b = Forget { runForget :: a -> r }
 instance Profunctor (Forget r) where
     dimap f _ (Forget k) = Forget (k . f)
 
+data Exchange a b s t = Exchange (s -> a) (b -> t)
+
+instance Profunctor (Exchange a b) where
+    lmap f (Exchange i o) = Exchange (i . f) o
+    rmap f (Exchange i o) = Exchange i (f . o)
+
 instance Functor (Tagged a) where
     fmap f (Tagged b) = Tagged (f b)
 
@@ -48,3 +54,6 @@ from i = iso bt sa
     where bt = runIdentity . unTagged . i . Tagged . Identity
           sa = getConst . i Const
 
+exchange :: Iso s t a b -> Iso b a t s
+exchange i = iso (runIdentity . bt) sa
+    where (Exchange sa bt) = i (Exchange id Identity)
