@@ -1,18 +1,35 @@
-module Continuation where
+module Cont where
 
-newtype Continuation r a = Cont { run :: (a -> r) -> r }
+newtype Cont r a = Cont { runCont :: (a -> r) -> r }
 
-instance Functor (Continuation r) where
-    fmap f c = Cont $ \bf -> run c $ \a -> bf $ f a
+instance Functor (Cont r) where
+    fmap f c = Cont $ \bf -> runCont c $ \a -> bf $ f a
 
-instance Applicative (Continuation r) where
+instance Applicative (Cont r) where
     pure a = Cont ($ a)
     cf <*> ca = Cont $ \bf ->
-        run cf $ \f ->
-        run ca $ \a -> bf $ f a
+        runCont cf $ \f ->
+        runCont ca $ \a -> bf $ f a
 
-instance Monad (Continuation r) where
-    c >>= f = Cont $ \bf -> run c $ \a -> run (f a) bf
+instance Monad (Cont r) where
+    c >>= f = Cont $ \bf -> runCont c $ \a -> runCont (f a) bf
 
-myCallCC :: ((a -> Continuation r b) -> Continuation r a) -> Continuation r a
-myCallCC f = Cont $ \fa -> run (f (\a -> Cont $ \_ -> fa a)) fa
+-- | Call with Current Continuation
+callCC :: ((a -> Cont r b) -> Cont r a) -> Cont r a
+callCC f = Cont $ \fa -> runCont (f (\a -> Cont $ \_ -> fa a)) fa
+
+evalCont :: Cont r r -> r
+evalCont = ($ id) . runCont
+
+mapCont :: (r -> r) -> Cont r a -> Cont r a
+mapCont f = Cont . (f .) . runCont
+
+withCont :: ((b -> r) -> a -> r) -> Cont r a -> Cont r b
+withCont f ca = Cont $ \br -> runCont ca (f br)
+
+reset :: Cont r r -> Cont r' r
+reset = Cont . flip ($) . evalCont
+
+shift :: ((a -> r) -> Cont r r) -> Cont r a
+shift f = Cont $ \ar -> evalCont (f ar)
+
