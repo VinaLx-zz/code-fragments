@@ -1,7 +1,8 @@
-"Maintainer:    Greg Sexton <gregsexton@gmail.com>
-"Last Change:   2011-04-22
-"Version:       1.1
-"URL:           http://www.gregsexton.org/vim-color-schemes/atom-color/
+" The theme is based on
+" [atom](http://www.gregsexton.org/vim-color-schemes/atom-color/)
+" by Greg Sexton
+"
+" Refined and maintained by [VinaLx](https://github.com/VinaLx/)
 
 set background=dark
 if version > 580
@@ -11,7 +12,7 @@ if version > 580
 	syntax reset
     endif
 endif
-let g:colors_name="atom"
+let g:colors_name="vinalx-atom"
 
 hi Normal       guifg=#CCCCCC     guibg=#273240
 
