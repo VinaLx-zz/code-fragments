@@ -1,61 +1,190 @@
 {
-    "editor.fontSize": 12.5,
+    ///
+    // general configs
+    ///
     "editor.cursorBlinking": "solid",
-
+    "editor.acceptSuggestionOnEnter": "smart",
+    "editor.minimap.enabled": false,
+    "editor.lineNumbers": "relative",
+    "editor.rulers": [
+        80
+    ],
+    "editor.snippetSuggestions": "bottom",
+    // "editor.fontFamily": "Fira Code",
+    // "editor.fontSize": 14,
+    // "editor.fontLigatures": true,
+    "editor.fontFamily": "Andale Mono",
+    "editor.fontSize": 14,
+    "editor.lineHeight": 19,
+    "terminal.integrated.fontFamily": "Monaco",
+    "terminal.integrated.fontSize": 13,
     "workbench.colorTheme": "One Monokai",
     "workbench.iconTheme": "vscode-icons",
-
     "files.trimTrailingWhitespace": true,
+    "vsicons.dontShowNewVersionMessage": true,
+    ///
+    // bracket
+    ///
+    // "bracketPairColorizer.showHorizontalScopeLine": false,
+    // "bracketPairColorizer.forceUniqueOpeningColor": false,
+    "subtleBrackets.bracketPairs": [
+        "{}",
+        "[]",
+        "()",
+        "<>"
+    ],
+    "subtleBrackets.styles": {
+        "global": {
+            "borderWidth": "1px",
+            "borderStyle": "solid solid solid solid",
+        }
+    },
 
-    "vim.disableAnnoyingNeovimMessage": true,
+    ///
+    // git
+    ///
+    "git.enableSmartCommit": true,
+    "git.confirmSync": true,
+    "gitlens.defaultDateStyle": "absolute",
+    "gitlens.defaultDateFormat": "YYYY-M-D",
+    // "gitlens.hovers.enabled": false,
+    "gitlens.currentLine.enabled": false,
+    "gitlens.currentLine.format": "${author} | ${agoOrDate} | ${message}",
+    "gitlens.codeLens.recentChange.enabled": false,
+    "gitlens.codeLens.authors.enabled": false,
+    "gitlens.advanced.messages": {
+        "suppressShowKeyBindingsNotice": true
+    },
+    // "cmake-tools-helper.cmake_download_path": "/Users/vinalx/.vscode/extensions/maddouri.cmake-tools-helper-0.2.1/cmake_download",
+    "explorer.confirmDragAndDrop": false,
+    ///
+    // vim
+    ///
     "vim.easymotion": true,
     "vim.leader": "-",
     "vim.hlsearch": true,
-    "vim.otherModesKeyBindingsNonRecursive": [{
-        "before": ["W"],
-        "commands": [{
-            "command": "workbench.action.files.save"
-        }]
-    }, {
-        "before": ["<leader>", "c", "f"],
-        "commands": [{
-            "command": "editor.action.formatDocument"
-        }]
-    }, {
-        "before": ["<leader>", "n", "h"],
-        "commands": [{
-            "command": ":nohl"
-        }]
-    }, {
-        "before": ["H"],
-        "commands": [{
-            "command": "workbench.action.focusPreviousGroup"
-        }]
-    }, {
-        "before": ["L"],
-        "commands": [{
-            "command": "workbench.action.focusNextGroup"
-        }]
-    }, {
-        "before": ["Q"],
-        "commands": [{
-            "command": ":q"
-        }]
-    }, {
-        "before": [" "],
-        "after": ["<leader>", "<leader>"]
-    }],
+    "vim.otherModesKeyBindingsNonRecursive": [
+        {
+            "before": [
+                "W"
+            ],
+            "commands": [
+                {
+                    "command": "workbench.action.files.save"
+                }
+            ]
+        },
+        {
+            "before": [
+                "<leader>",
+                "c",
+                "f"
+            ],
+            "commands": [
+                {
+                    "command": "editor.action.formatDocument"
+                }
+            ]
+        },
+        {
+            "before": [
+                "<leader>",
+                "n",
+                "h"
+            ],
+            "commands": [
+                {
+                    "command": ":nohl"
+                }
+            ]
+        },
+        {
+            "before": [
+                "H"
+            ],
+            "commands": [
+                {
+                    "command": "workbench.action.focusPreviousGroup"
+                }
+            ]
+        },
+        {
+            "before": [
+                "L"
+            ],
+            "commands": [
+                {
+                    "command": "workbench.action.focusNextGroup"
+                }
+            ]
+        },
+        {
+            "before": [
+                "Q"
+            ],
+            "commands": [
+                {
+                    "command": ":q"
+                }
+            ]
+        },
+        {
+            "before": [
+                " "
+            ],
+            "after": [
+                "<leader>",
+                "<leader>"
+            ]
+        }
+    ],
     "vim.easymotionMarkerFontFamily": "Menlo",
     "vim.easymotionMarkerHeight": 12,
     "vim.easymotionMarkerYOffset": 12,
     "vim.easymotionMarkerBackgroundColor": "rgb(40, 44, 52)",
     "vim.easymotionMarkerForegroundColorOneChar": "#eeeeee",
     "vim.easymotionMarkerForegroundColorTwoChar": "rgb(247, 225, 120)",
+    ///
+    // c++
+    ///
+    "C_Cpp.formatting": "Default",
+    "C_Cpp.clang_format_path": "/usr/local/opt/llvm/bin/clang-format",
+    "C_Cpp.intelliSenseEngine": "Tag Parser",
+    "c-cpp-flylint.cppcheck.enable": false,
+    "c-cpp-flylint.flexelint.enable": false,
+    "c-cpp-flylint.standard": [
+        "c++1y"
+    ],
+    "c-cpp-flylint.clang.warnings": [
+        "all"
+    ],
+    "c-cpp-flylint.clang.severityLevels": {
+        "fatal": "Error",
+        "error": "Error",
+        "warning": "Warning",
+        "note": "Information"
+    },
+    "cmake.useCMakeServer": false,
 
-
-    "python.pythonPath": "python3",
+    ///
+    // python
+    ///
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.linting.flake8Path": "/usr/local/bin/flake8",
     "python.linting.pep8Enabled": true,
-
-    "guides.indent.backgrounds": [],
-    "guides.active.color.dark": "rgb(100, 100, 100)"
+    "python.linting.pep8Path": "/usr/local/bin/pep8",
+    "python.pythonPath": "/usr/local/bin/python3",
+    "python.formatting.autopep8Args": [
+        "-a",
+        "-a"
+    ],
+    ///
+    // web development
+    ///
+    "emmet.triggerExpansionOnTab": true,
+    "typescript.tsdk": "/usr/local/lib/node_modules/typescript/lib",
+    "auto-close-tag.SublimeText3Mode": true,
+    "editor.matchBrackets": false,
+    "gitlens.historyExplorer.enabled": true,
 }
