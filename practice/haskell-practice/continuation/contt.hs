@@ -2,6 +2,8 @@ module Contt where
 
 import Control.Monad (Monad, return)
 import Data.Functor.Identity (runIdentity, Identity(..))
+import Control.Monad.Trans.Class (MonadTrans(..))
+import Control.Monad.IO.Class (MonadIO(..))
 
 newtype ContT r m a = ContT { runContT :: (a -> m r) -> m r }
 
@@ -15,6 +17,12 @@ instance Applicative (ContT r m) where
 instance Monad (ContT r m) where
     return = pure
     ma >>= f = ContT $ \fb -> runContT ma $ \a -> runContT (f a) fb
+
+instance MonadTrans (ContT r) where
+    lift = ContT . (>>=)
+
+instance MonadIO m => MonadIO (ContT r m) where
+    liftIO = lift . liftIO
 
 evalContT :: Monad m => ContT r m r -> m r
 evalContT = ($ return) . runContT
