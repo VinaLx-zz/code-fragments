@@ -1,0 +1,22 @@
+snippet define "define guard"
+#ifndef $1
+#define $1
+
+$0
+
+#endif // $1
+endsnippet
+
+snippet class "class definition"
+class ${1:ClassName} \{
+  public:
+    $0
+\};
+endsnippet
+
+snippet struct "struct definition"
+struct ${1:StructName} \{
+    $0
+\};
+endsnippet
+
